@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ACA-AOL · Journal Voucher</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="dot"></span>
+        <div>
+          <div class="title">ACA-AOL</div>
+          <div class="subtitle">Journal Voucher (Excel → Accurate)</div>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <button id="themeToggle" class="btn ghost" type="button">Dark / Clear</button>
+      </div>
+    </header>
+
+    <main class="grid">
+
+      <!-- 1) LOGIN -->
+      <section class="card span2">
+        <div class="card-head">
+          <h2>1) Login</h2>
+          <span class="step-badge">Akses Aplikasi</span>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="code">Kode Akses</label>
+            <input id="code" type="text" placeholder="mis. DEMO-001" autocomplete="off">
+          </div>
+
+          <div class="field">
+            <label for="pin">PIN</label>
+            <input id="pin" type="password" placeholder="••••" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <button id="btnLogin" class="btn" type="button">Masuk</button>
+          <div id="loginStatus" class="hint" style="margin-left:10px"></div>
+        </div>
+        <div id="customerInfo" class="hint"></div>
+
+        <div id="customerInfo" class="hint"></div>
+      </section>
+
+      <!-- 2) CONNECT + DB -->
+      <section class="card span2">
+        <div class="card-head">
+          <h2>2) Connect Accurate & Pilih Database</h2>
+          <span class="step-badge">OAuth & Database</span>
+        </div>
+
+        <div class="row row-gap">
+          <a id="btnConnectAO" href="/oauth/start" class="btn">Connect Accurate</a>
+          <button id="btnLoadDb" class="btn ghost" type="button" disabled>Load Database</button>
+          <button id="btnUseDb" class="btn ghost" type="button" disabled>Use Database</button>
+          <button id="btnLogoutAO" class="btn ghost" type="button">Logout Accurate</button>
+        </div>
+
+        <div class="field" style="margin-top:12px">
+          <label for="dbSelect">Pilih Database</label>
+          <select id="dbSelect">
+            <option value="">-- klik Load Database dulu --</option>
+          </select>
+        </div>
+
+        <div id="aoStatus" class="hint" style="margin-top:10px"></div>
+
+        <div class="hint" style="margin-top:8px">
+          Urutan: Connect Accurate → Load Database → pilih database → Use Database
+        </div>
+      </section>
+
+      <!-- 3) UPLOAD -->
+      <section class="card span2">
+        <div class="card-head">
+          <h2>3) Upload Excel</h2>
+          <span class="step-badge">Template & File</span>
+        </div>
+
+        <div class="row row-gap">
+          <input id="file" type="file" accept=".xlsx,.xls">
+          <a class="btn ghost" href="/api/template">Download Template</a>
+          <button id="btnResetFile" class="btn ghost" type="button">Reset File</button>
+        </div>
+
+        <div class="hint" style="margin-top:8px">
+          Header wajib: transDate, number, accountNo, amount, amountType
+        </div>
+      </section>
+
+      <!-- 4) BUILD & IMPORT -->
+      <section class="card span2">
+        <div class="card-head">
+          <h2>4) Build & Import</h2>
+          <span class="step-badge">Proses Import</span>
+        </div>
+
+        <div class="row row-gap">
+          <button id="btnBuild" class="btn ghost" type="button" disabled>Build Payload</button>
+          <button id="btnImport" class="btn" type="button" disabled>Import ke Accurate</button>
+        </div>
+
+        <div id="summary" class="hint" style="margin-top:10px"></div>
+
+        <!-- Notify box -->
+        <div id="notifyBox" class="notify hidden">
+          <div class="notify-head">
+            <div id="notifyTitle" class="notify-title"></div>
+            <button id="notifyClose" class="notify-close" type="button" aria-label="Tutup notifikasi">✕</button>
+          </div>
+          <div id="notifyBody" class="notify-body"></div>
+        </div>
+
+        <!-- Log -->
+        <pre id="log" class="log"></pre>
+      </section>
+
+    </main>
+
+    <footer class="footer">
+      <span>Theme: Dark/Clear</span>
+      <span>·</span>
+      <span>Accent: Orange</span>
+      <span>·</span>
+      <span>Python Flask</span>
+      <span>·</span>
+      <span>Module: Journal Voucher</span>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AO Journal Voucher Importer</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="./styles.css" />
+
+  <!-- SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="dot"></span>
+        <div>
+          <div class="title">AO Importer</div>
+          <div class="subtitle">Journal Voucher (Excel → Accurate)</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="themeToggle" class="btn ghost">Dark / Clear</button>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <h2>Login</h2>
+        <div class="row">
+          <div class="field">
+            <label>Kode Akses</label>
+            <input id="code" placeholder="mis. DEMO-001" />
+          </div>
+          <div class="field">
+            <label>PIN</label>
+            <input id="pin" type="password" placeholder="••••" />
+          </div>
+        </div>
+        <button id="btnLogin" class="btn">Masuk</button>
+        <div id="loginStatus" class="hint"></div>
+      </section>
+
+      <section class="card">
+        <h2>Auth Accurate (opsional override)</h2>
+        <p class="hint">Kalau di server sudah diset lewat .env, bagian ini boleh dikosongkan.</p>
+        <div class="field">
+          <label>Bearer Token</label>
+          <input id="bearerToken" placeholder="Bearer token (opsional)" />
+        </div>
+        <div class="field">
+          <label>X-Session-ID</label>
+          <input id="xSessionId" placeholder="X-Session-ID (opsional)" />
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button id="btnConnect" class="btn">Connect OAuth</button>
+          <button id="btnDbList" class="btn ghost">Load DB List</button>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <button id="btnConnectOAuth" class="btn">Connect OAuth</button>
+          <button id="btnOpenDb" class="btn ghost">Open DB</button>
+        </div>
+        <div class="hint">Setelah Connect, klik Open DB untuk dapat host + X-Session-ID.</div>
+
+        <div class="field" style="margin-top:10px">
+          <label>Pilih Database</label>
+          <select id="dbSelect"></select>
+        </div>
+        <button id="btnOpenDb" class="btn ghost" style="margin-top:10px">Open DB</button>
+      </section>
+
+      <section class="card">
+        <h2>Upload Excel</h2>
+        <div class="row">
+          <input id="file" type="file" accept=".xlsx,.xls" />
+          <button id="btnTemplate" class="btn ghost">Download Template (CSV)</button>
+        </div>
+        <div class="hint">Header wajib: transDate, number, accountNo, amount, amountType</div>
+      </section>
+
+      <section class="card span2">
+        <h2>Preview</h2>
+        <div class="row">
+          <button id="btnBuild" class="btn ghost">Build Payload</button>
+          <button id="btnImport" class="btn" disabled>Import ke Accurate</button>
+        </div>
+        <div id="summary" class="hint"></div>
+        <div class="tableWrap">
+          <table id="table"></table>
+        </div>
+      </section>
+
+      <section class="card span2">
+        <h2>Log</h2>
+        <pre id="log" class="log"></pre>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Accent: Orange · Theme: Dark/Clear · Simple Importer</span>
+    </footer>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
