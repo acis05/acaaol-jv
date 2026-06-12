@@ -169,8 +169,9 @@ function updateUI() {
   if ($("btnLoadDb")) $("btnLoadDb").disabled = !oauthReady;
 
   if ($("btnUseDb")) {
-    const hasOptions = $("dbSelect") && $("dbSelect").options.length > 0;
-    $("btnUseDb").disabled = !(oauthReady && hasOptions);
+    const sel = $("dbSelect");
+    const hasSelectedDb = !!(sel && sel.value && String(sel.value).trim() !== "");
+    $("btnUseDb").disabled = !(oauthReady && hasSelectedDb);
   }
 
   const status = [];
@@ -293,15 +294,15 @@ if ($("btnLogin")) {
     clearNotify();
 
     try {
-      const code = $("code")?.value?.trim() || "";
-      const pin = $("pin")?.value?.trim() || "";
+      const email = $("email")?.value?.trim() || "";
+      const password = $("password")?.value?.trim() || "";
 
-      const res = await postJson("/api/login", { code, pin }, false);
+      const res = await postJson("/api/login", { email, password }, false);
       token = res.token;
       sessionStorage.setItem("app_token", token);
 
       if ($("customerInfo")) {
-        $("customerInfo").textContent = "Customer: " + (res.customer_name || "-");
+        $("customerInfo").textContent = "Customer: " + (res.customer_name || "-") + (res.email ? " · " + res.email : "");
       }
 
       setText("loginStatus", "Login OK");
@@ -368,6 +369,12 @@ if ($("btnLoadDb")) {
       const sel = $("dbSelect");
       if (sel) {
         sel.innerHTML = "";
+
+        const firstOpt = document.createElement("option");
+        firstOpt.value = "";
+        firstOpt.textContent = "-- pilih database --";
+        sel.appendChild(firstOpt);
+
         arr.forEach((db) => {
           const opt = document.createElement("option");
           opt.value = db.id;
@@ -390,6 +397,16 @@ if ($("btnLoadDb")) {
       showNotify("error", "Load DB gagal", renderSimpleMessage([e.message]));
     }
   };
+}
+
+
+// ======================
+// DB select change
+// ======================
+if ($("dbSelect")) {
+  $("dbSelect").addEventListener("change", () => {
+    updateUI();
+  });
 }
 
 // ======================

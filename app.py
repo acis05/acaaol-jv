@@ -80,44 +80,50 @@ def load_licenses():
         # default demo
         return [
             {
-                "code": "DEMO-001",
-                "pin_sha256": sha256("1234"),
+                "email": "demo@aca-aol.id",
+                "password_sha256": sha256("1234"),
                 "active": True,
                 "expires": None,
+                "customer_name": "Demo User",
             }
         ]
     with open(LICENSE_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def license_valid(code: str, pin: str):
+def license_valid(email: str, password: str):
     licenses = load_licenses()
-    lic = next((x for x in licenses if x.get("code") == code), None)
+    email = (email or "").strip().lower()
+
+    lic = next(
+        (x for x in licenses if str(x.get("email", "")).strip().lower() == email),
+        None
+    )
 
     if not lic:
-        return False, "Kode tidak valid", None
+        return False, "Email tidak terdaftar", None
 
     if not lic.get("active"):
-        return False, "Lisensi tidak aktif", None
+        return False, "Akun tidak aktif", None
 
     expires = lic.get("expires")
     if expires:
         try:
             exp_dt = dt.datetime.fromisoformat(expires + "T23:59:59")
             if dt.datetime.now() > exp_dt:
-                return False, "Lisensi expired", None
+                return False, "Akun expired", None
         except Exception:
             return False, "Format expires di licenses.json salah", None
 
-    if sha256(pin) != lic.get("pin_sha256"):
-        return False, "PIN salah", None
+    if sha256(password) != lic.get("password_sha256"):
+        return False, "Password salah", None
 
     return True, "OK", lic
 
 
-def make_token(code: str) -> str:
+def make_token(email: str) -> str:
     payload = {
-        "code": code,
+        "email": email,
         # python 3.14 warning utcnow → kita pakai timezone aware
         "exp": dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=12),
     }
@@ -407,22 +413,23 @@ def home():
 @app.post("/api/login")
 def api_login():
     data = request.get_json(silent=True) or {}
-    code = (data.get("code") or "").strip()
-    pin = (data.get("pin") or "").strip()
+    email = (data.get("email") or "").strip().lower()
+    password = (data.get("password") or "").strip()
 
-    if not code or not pin:
-        return jsonify({"ok": False, "message": "Code & PIN wajib"}), 400
+    if not email or not password:
+        return jsonify({"ok": False, "message": "Email & password wajib"}), 400
 
-    ok, msg, lic = license_valid(code, pin)
+    ok, msg, lic = license_valid(email, password)
     if not ok:
         return jsonify({"ok": False, "message": msg}), 401
 
-    token = make_token(code)
+    token = make_token(email)
 
     return jsonify({
         "ok": True,
         "token": token,
-        "customer_name": lic.get("customer_name")
+        "customer_name": lic.get("customer_name"),
+        "email": email
     })
 
 # =========================
@@ -796,4 +803,5 @@ def api_template():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=3000)
+    port = int(os.getenv("PORT", "3000"))
+    app.run(host="0.0.0.0", port=port, debug=False)
