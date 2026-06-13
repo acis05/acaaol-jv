@@ -157,7 +157,25 @@ function isDbReady() {
   return !!ao.has_session;
 }
 
+function updateViewByLogin() {
+  const loggedIn = isLoggedIn();
+
+  if ($("loginView")) {
+    $("loginView").classList.toggle("hidden", loggedIn);
+  }
+
+  if ($("appView")) {
+    $("appView").classList.toggle("hidden", !loggedIn);
+  }
+
+  if ($("appFooter")) {
+    $("appFooter").classList.toggle("hidden", !loggedIn);
+  }
+}
+
 function updateUI() {
+  updateViewByLogin();
+
   const loggedIn = isLoggedIn();
   const fileReady = isFileReady();
   const payloadReady = isPayloadReady();
@@ -307,6 +325,7 @@ if ($("btnLogin")) {
 
       setText("loginStatus", "Login OK");
       log("Login berhasil.");
+      updateUI();
 
       await fetchAoStatus();
     } catch (e) {
@@ -324,6 +343,21 @@ if ($("btnLogin")) {
     }
   };
 }
+
+
+// ======================
+// Login enter key
+// ======================
+["email", "password"].forEach((id) => {
+  const el = $(id);
+  if (el) {
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && $("btnLogin")) {
+        $("btnLogin").click();
+      }
+    });
+  }
+});
 
 // ======================
 // File picker

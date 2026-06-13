@@ -10,6 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="/static/styles.css">
+  <style>
+    .hidden { display: none !important; }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -30,9 +33,9 @@
     <main class="grid">
 
       <!-- 1) LOGIN -->
-      <section class="card span2">
+      <section id="loginView" class="card span2">
         <div class="card-head">
-          <h2>1) Login</h2>
+          <h2>Login</h2>
           <span class="step-badge">Akses Aplikasi</span>
         </div>
 
@@ -54,6 +57,8 @@
         </div>
         <div id="customerInfo" class="hint"></div>
       </section>
+
+      <div id="appView" class="hidden" style="display: contents;">
 
       <!-- 2) CONNECT + DB -->
       <section class="card span2">
@@ -128,9 +133,11 @@
         <pre id="log" class="log"></pre>
       </section>
 
+      </div>
+
     </main>
 
-    <footer class="footer">
+    <footer id="appFooter" class="footer hidden">
       <span>Theme: Dark/Clear</span>
       <span>·</span>
       <span>Accent: Orange</span>
