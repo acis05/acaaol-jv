@@ -1,6 +1,8 @@
 let token = sessionStorage.getItem("app_token") || null;
 let selectedFile = null;
 let builtPayload = null;
+let currentUser = sessionStorage.getItem("app_user") || "";
+let lastFailureText = "";
 let ao = {
   has_token: false,
   has_session: false,
@@ -43,6 +45,55 @@ function escapeHtml(text) {
     .replaceAll("'", "&#039;");
 }
 
+function setProcessStatus(kind, title, subtitle = "") {
+  const el = $("processStatus");
+  if (!el) return;
+
+  el.classList.remove("idle", "working", "success", "error");
+  el.classList.add(kind || "idle");
+
+  el.innerHTML = `
+    <span class="status-dot"></span>
+    <div>
+      <strong>${escapeHtml(title || "")}</strong>
+      <small>${escapeHtml(subtitle || "")}</small>
+    </div>
+  `;
+}
+
+function setMetrics(total = 0, success = 0, failed = 0) {
+  setText("metricTotal", total);
+  setText("metricSuccess", success);
+  setText("metricFailed", failed);
+}
+
+function updateChips() {
+  const chipLogin = $("chipLogin");
+  const chipOAuth = $("chipOAuth");
+  const chipDb = $("chipDb");
+  const chipFile = $("chipFile");
+
+  if (chipLogin) {
+    chipLogin.classList.toggle("ok", !!token);
+    chipLogin.textContent = token ? "Login OK" : "Belum Login";
+  }
+
+  if (chipOAuth) {
+    chipOAuth.classList.toggle("ok", !!ao.has_token);
+    chipOAuth.textContent = ao.has_token ? "Accurate OK" : "Belum Connect";
+  }
+
+  if (chipDb) {
+    chipDb.classList.toggle("ok", !!ao.has_session);
+    chipDb.textContent = ao.has_session ? "DB Aktif" : "DB Belum Dipilih";
+  }
+
+  if (chipFile) {
+    chipFile.classList.toggle("ok", !!selectedFile);
+    chipFile.textContent = selectedFile ? "Excel Siap" : "Excel Belum Ada";
+  }
+}
+
 // ======================
 // Notify helpers
 // ======================
@@ -80,62 +131,100 @@ function renderSimpleMessage(lines = []) {
   `;
 }
 
-function renderImportSummary(summary = {}, results = []) {
-  const okItems = results.filter(x => x.ok);
+function buildFailureText(results = []) {
+  const failItems = results.filter(x => !x.ok);
+  if (failItems.length === 0) return "";
+
+  const lines = [];
+  lines.push("CATATAN GAGAL IMPORT JOURNAL VOUCHER");
+  lines.push("====================================");
+  lines.push("");
+
+  failItems.forEach((x, i) => {
+    lines.push(`${i + 1}. ${x.number || "-"} | ${x.transDate || "-"}`);
+    const errors = Array.isArray(x.errors) && x.errors.length ? x.errors : ["Transaksi gagal diproses."];
+    errors.forEach(err => lines.push(`   - ${err}`));
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+function renderImportResult(summary = {}, results = []) {
+  const total = summary.total || results.length || 0;
+  const success = summary.success || results.filter(x => x.ok).length || 0;
+  const failed = summary.failed || results.filter(x => !x.ok).length || 0;
   const failItems = results.filter(x => !x.ok);
 
-  const okHtml = okItems.length
-    ? `
-      <div class="notify-section">
-        <div class="notify-section-title">Berhasil</div>
-        ${okItems.map(x => `
-          <div class="notify-item ok">
-            <div class="notify-meta">✔ ${escapeHtml(x.number || "-")} • ${escapeHtml(x.transDate || "-")}</div>
-          </div>
-        `).join("")}
-      </div>
-    `
-    : "";
+  setMetrics(total, success, failed);
 
-  const failHtml = failItems.length
-    ? `
-      <div class="notify-section">
-        <div class="notify-section-title">Gagal</div>
-        ${failItems.map(x => `
-          <div class="notify-item fail">
-            <div class="notify-meta">✘ ${escapeHtml(x.number || "-")} • ${escapeHtml(x.transDate || "-")}</div>
-            <ul class="notify-errors">
-              ${(x.errors || []).map(err => `<li>${escapeHtml(err)}</li>`).join("")}
-            </ul>
-          </div>
-        `).join("")}
+  if (failed === 0) {
+    hideFailurePad();
+    return `
+      <div class="friendly-result success-result">
+        <strong>Semua transaksi berhasil diimport.</strong>
+        <span>Total ${total} transaksi sudah masuk ke Accurate.</span>
       </div>
-    `
-    : "";
+    `;
+  }
 
   return `
-    <div class="import-summary">
-      <div class="sum-item">
-        <span>Total</span>
-        <strong>${summary.total || 0}</strong>
-      </div>
-      <div class="sum-item ok">
-        <span>Berhasil</span>
-        <strong>${summary.success || 0}</strong>
-      </div>
-      <div class="sum-item fail">
-        <span>Gagal</span>
-        <strong>${summary.failed || 0}</strong>
-      </div>
+    <div class="friendly-result error-result">
+      <strong>${failed} transaksi gagal diimport.</strong>
+      <span>${success} transaksi berhasil. Catatan gagal sudah dibuat di bawah.</span>
     </div>
-    ${okHtml}
-    ${failHtml}
+    <div class="failure-list">
+      ${failItems.map(x => `
+        <div class="failure-row">
+          <div>
+            <strong>${escapeHtml(x.number || "-")}</strong>
+            <small>${escapeHtml(x.transDate || "-")}</small>
+          </div>
+          <span>${escapeHtml((x.errors || ["Gagal"])[0])}</span>
+        </div>
+      `).join("")}
+    </div>
   `;
+}
+
+function showFailurePad(text) {
+  lastFailureText = text || "";
+  const pad = $("failurePad");
+  const notes = $("failureNotes");
+  if (!pad || !notes) return;
+
+  if (!lastFailureText) {
+    hideFailurePad();
+    return;
+  }
+
+  notes.value = lastFailureText;
+  pad.classList.remove("hidden");
+}
+
+function hideFailurePad() {
+  lastFailureText = "";
+  const pad = $("failurePad");
+  const notes = $("failureNotes");
+  if (notes) notes.value = "";
+  if (pad) pad.classList.add("hidden");
 }
 
 const notifyClose = $("notifyClose");
 if (notifyClose) {
   notifyClose.onclick = () => clearNotify();
+}
+
+if ($("btnCopyFailures")) {
+  $("btnCopyFailures").onclick = async () => {
+    try {
+      if (!lastFailureText) return;
+      await navigator.clipboard.writeText(lastFailureText);
+      showNotify("success", "Catatan berhasil dicopy", renderSimpleMessage(["Catatan gagal sudah disalin ke clipboard."]));
+    } catch {
+      showNotify("info", "Copy manual", renderSimpleMessage(["Silakan blok teks catatan gagal lalu copy manual."]));
+    }
+  };
 }
 
 // ======================
@@ -168,8 +257,8 @@ function updateViewByLogin() {
     $("appView").classList.toggle("hidden", !loggedIn);
   }
 
-  if ($("appFooter")) {
-    $("appFooter").classList.toggle("hidden", !loggedIn);
+  if ($("userBadge")) {
+    $("userBadge").textContent = currentUser || "Login aktif";
   }
 }
 
@@ -197,13 +286,24 @@ function updateUI() {
   status.push(oauthReady ? "OAuth OK" : "Belum Connect");
   status.push(dbReady ? `DB Aktif${ao.db_alias ? ": " + ao.db_alias : ""}` : "DB belum dipilih");
   setText("aoStatus", status.join(" · "));
+
+  updateChips();
+
+  if (!fileReady && !payloadReady) {
+    setProcessStatus("idle", "Menunggu file Excel", "Pilih file Excel terlebih dahulu.");
+  } else if (fileReady && !payloadReady) {
+    setProcessStatus("idle", "File sudah dipilih", "Klik Cek File untuk membaca transaksi.");
+  }
 }
 
 function resetExcelState() {
   selectedFile = null;
   builtPayload = null;
   if ($("file")) $("file").value = "";
+  setText("fileName", "Belum ada file dipilih");
   setSummary("");
+  setMetrics(0, 0, 0);
+  hideFailurePad();
   clearNotify();
   updateUI();
 }
@@ -317,33 +417,52 @@ if ($("btnLogin")) {
 
       const res = await postJson("/api/login", { email, password }, false);
       token = res.token;
+      currentUser = res.email || email || res.customer_name || "Login aktif";
       sessionStorage.setItem("app_token", token);
+      sessionStorage.setItem("app_user", currentUser);
 
       if ($("customerInfo")) {
-        $("customerInfo").textContent = "Customer: " + (res.customer_name || "-") + (res.email ? " · " + res.email : "");
+        $("customerInfo").textContent = "Login berhasil. Membuka dashboard...";
       }
 
-      setText("loginStatus", "Login OK");
+      setText("loginStatus", "");
       log("Login berhasil.");
       updateUI();
 
       await fetchAoStatus();
     } catch (e) {
       token = null;
+      currentUser = "";
       sessionStorage.removeItem("app_token");
+      sessionStorage.removeItem("app_user");
       setText("loginStatus", "Login gagal: " + e.message);
 
       if ($("customerInfo")) {
         $("customerInfo").textContent = "";
       }
 
-      log("Login gagal: " + e.message);
       showNotify("error", "Login gagal", renderSimpleMessage([e.message]));
       updateUI();
     }
   };
 }
 
+if ($("btnAppLogout")) {
+  $("btnAppLogout").onclick = () => {
+    token = null;
+    currentUser = "";
+    selectedFile = null;
+    builtPayload = null;
+    sessionStorage.removeItem("app_token");
+    sessionStorage.removeItem("app_user");
+    setMetrics(0, 0, 0);
+    hideFailurePad();
+    clearNotify();
+    clearLog();
+    setSummary("");
+    updateUI();
+  };
+}
 
 // ======================
 // Login enter key
@@ -365,14 +484,18 @@ if ($("btnLogin")) {
 if ($("file")) {
   $("file").addEventListener("change", (e) => {
     clearNotify();
+    hideFailurePad();
 
     selectedFile = e.target.files?.[0] || null;
     builtPayload = null;
+    setMetrics(0, 0, 0);
 
     if (selectedFile) {
-      log(`File dipilih: ${selectedFile.name}`);
+      setText("fileName", selectedFile.name);
+      setProcessStatus("idle", "File sudah dipilih", "Klik Cek File untuk membaca transaksi.");
     } else {
-      log("Tidak ada file dipilih.");
+      setText("fileName", "Belum ada file dipilih");
+      setProcessStatus("idle", "Menunggu file Excel", "Pilih file Excel terlebih dahulu.");
     }
 
     updateUI();
@@ -385,7 +508,6 @@ if ($("file")) {
 if ($("btnResetFile")) {
   $("btnResetFile").onclick = () => {
     resetExcelState();
-    log("File di-reset.");
   };
 }
 
@@ -396,7 +518,8 @@ if ($("btnLoadDb")) {
   $("btnLoadDb").onclick = async () => {
     try {
       clearNotify();
-      log("Load DB list...");
+      setProcessStatus("working", "Memuat database", "Mengambil daftar database dari Accurate...");
+
       const res = await getJson("/api/db-list");
       const arr = res?.response?.d || [];
 
@@ -418,7 +541,6 @@ if ($("btnLoadDb")) {
         });
       }
 
-      log(`DB list loaded: ${arr.length} database.`);
       updateUI();
 
       if (arr.length === 0) {
@@ -427,12 +549,12 @@ if ($("btnLoadDb")) {
         showNotify("info", "Database berhasil dimuat", renderSimpleMessage([`Total database: ${arr.length}`]));
       }
     } catch (e) {
-      log("DB list gagal: " + e.message);
-      showNotify("error", "Load DB gagal", renderSimpleMessage([e.message]));
+      showNotify("error", "Load Database gagal", renderSimpleMessage([e.message]));
+    } finally {
+      updateUI();
     }
   };
 }
-
 
 // ======================
 // DB select change
@@ -457,17 +579,16 @@ if ($("btnUseDb")) {
 
       if (!id) throw new Error("Pilih database dulu");
 
-      log("Open DB...");
       const res = await postJson("/api/open-db", { id, alias }, false);
-
-      log("Open DB OK.");
-      log(JSON.stringify(res, null, 2));
-
       await fetchAoStatus();
+
       showNotify("success", "Database aktif", renderSimpleMessage([alias || id]));
+      setProcessStatus("idle", "Database sudah aktif", "Lanjut upload file Excel.");
+      log(JSON.stringify(res, null, 2));
     } catch (e) {
-      log("Open DB gagal: " + e.message);
-      showNotify("error", "Open DB gagal", renderSimpleMessage([e.message]));
+      showNotify("error", "Open Database gagal", renderSimpleMessage([e.message]));
+    } finally {
+      updateUI();
     }
   };
 }
@@ -489,7 +610,8 @@ if ($("btnLogoutAO")) {
       };
       builtPayload = null;
       setSummary("");
-      log("Logout Accurate berhasil.");
+      setMetrics(0, 0, 0);
+      hideFailurePad();
       updateUI();
 
       showNotify("success", "Logout Accurate berhasil", renderSimpleMessage(["Silakan Connect lagi untuk akun lain."]));
@@ -506,6 +628,7 @@ if ($("btnBuild")) {
   $("btnBuild").onclick = async () => {
     try {
       clearNotify();
+      hideFailurePad();
 
       if (!token) throw new Error("Login dulu");
       if (!selectedFile) throw new Error("Pilih file Excel dulu");
@@ -513,28 +636,33 @@ if ($("btnBuild")) {
       const fd = new FormData();
       fd.append("file", selectedFile);
 
-      log("Build payload dari Excel...");
+      setProcessStatus("working", "Mengecek file Excel", "Mohon tunggu, sistem sedang membaca transaksi...");
       const res = await postForm("/api/build-payload", fd);
 
       builtPayload = res.payload;
-      setSummary(`Siap import: ${res.summary.transactions} transaksi, ${res.summary.lines} baris detail.`);
-      log("Build OK.");
+      const tx = res.summary.transactions || 0;
+      const lines = res.summary.lines || 0;
+
+      setMetrics(tx, 0, 0);
+      setSummary(`File siap diimport: ${tx} transaksi, ${lines} baris detail.`);
+      setProcessStatus("success", "File siap diimport", `${tx} transaksi dan ${lines} baris detail terdeteksi.`);
 
       showNotify(
-        "info",
-        "Build berhasil",
+        "success",
+        "File siap diimport",
         renderSimpleMessage([
-          `Jumlah transaksi: ${res.summary.transactions}`,
-          `Jumlah detail: ${res.summary.lines}`,
-          "Payload siap di-import ke Accurate."
+          `Jumlah transaksi: ${tx}`,
+          `Jumlah detail: ${lines}`,
+          "Silakan klik Import ke Accurate."
         ])
       );
 
       updateUI();
     } catch (e) {
       builtPayload = null;
-      log("Build gagal: " + e.message);
-      showNotify("error", "Build Payload gagal", renderSimpleMessage([e.message]));
+      setMetrics(0, 0, 0);
+      setProcessStatus("error", "Cek file gagal", e.message);
+      showNotify("error", "Cek File gagal", renderSimpleMessage([e.message]));
       updateUI();
     }
   };
@@ -547,57 +675,58 @@ if ($("btnImport")) {
   $("btnImport").onclick = async () => {
     try {
       clearNotify();
+      hideFailurePad();
 
       if (!token) throw new Error("Login dulu");
       if (!ao.has_session) throw new Error("Pilih DB dulu");
-      if (!builtPayload) throw new Error("Build payload dulu");
+      if (!builtPayload) throw new Error("Cek file dulu");
 
-      log("Mengirim ke Accurate...");
+      setProcessStatus("working", "Mengimport ke Accurate", "Mohon tunggu, transaksi sedang dikirim...");
       const res = await postJson("/api/import-journal-voucher", { payload: builtPayload }, true);
 
       const summary = res.summary || {};
       const results = res.results || [];
-      const hasFailed = (summary.failed || 0) > 0;
+      const failed = summary.failed || 0;
 
-      log("IMPORT SELESAI");
-      log(JSON.stringify(res, null, 2));
-
-      showNotify(
-        hasFailed ? "error" : "success",
-        hasFailed ? "Import selesai dengan beberapa kegagalan" : "Import berhasil",
-        renderImportSummary(summary, results)
+      setProcessStatus(
+        failed > 0 ? "error" : "success",
+        failed > 0 ? "Import selesai dengan catatan" : "Import berhasil",
+        failed > 0 ? `${failed} transaksi gagal. Lihat catatan gagal.` : "Semua transaksi berhasil masuk ke Accurate."
       );
 
-      if (!hasFailed) {
+      showNotify(
+        failed > 0 ? "error" : "success",
+        failed > 0 ? "Import selesai dengan beberapa kegagalan" : "Import berhasil",
+        renderImportResult(summary, results)
+      );
+
+      const failureText = buildFailureText(results);
+      if (failureText) showFailurePad(failureText);
+
+      if (failed === 0) {
         resetExcelState();
-        log("Semua transaksi berhasil. Silakan pilih file baru untuk import berikutnya.");
+        setProcessStatus("success", "Import berhasil", "Semua transaksi berhasil masuk ke Accurate.");
       }
     } catch (e) {
-      log("IMPORT ERROR: " + e.message);
-
-      // paling penting: baca detail dari backend error response
       const data = e.data || {};
       const summary = data.summary || {};
       const results = data.results || [];
 
       if (results.length > 0) {
+        const failureText = buildFailureText(results);
+        setProcessStatus("error", "Import selesai dengan catatan", `${summary.failed || 0} transaksi gagal.`);
         showNotify(
           "error",
           "Import selesai dengan beberapa kegagalan",
-          renderImportSummary(summary, results)
+          renderImportResult(summary, results)
         );
+        if (failureText) showFailurePad(failureText);
       } else if (data.response?.d) {
-        showNotify(
-          "error",
-          "Import gagal",
-          renderSimpleMessage(data.response.d)
-        );
+        setProcessStatus("error", "Import gagal", "Ada pesan dari Accurate yang perlu diperiksa.");
+        showNotify("error", "Import gagal", renderSimpleMessage(data.response.d));
       } else {
-        showNotify(
-          "error",
-          "Import gagal",
-          renderSimpleMessage([e.message])
-        );
+        setProcessStatus("error", "Import gagal", e.message);
+        showNotify("error", "Import gagal", renderSimpleMessage([e.message]));
       }
     } finally {
       updateUI();
@@ -610,6 +739,10 @@ if ($("btnImport")) {
 // ======================
 window.addEventListener("load", async () => {
   token = sessionStorage.getItem("app_token") || null;
+  currentUser = sessionStorage.getItem("app_user") || "";
   updateUI();
-  await fetchAoStatus();
+
+  if (token) {
+    await fetchAoStatus();
+  }
 });

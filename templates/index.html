@@ -10,36 +10,28 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="/static/styles.css">
-  <style>
-    .hidden { display: none !important; }
-  </style>
 </head>
 <body>
+  <div class="shell-bg"></div>
+
   <div class="app">
-    <header class="topbar">
-      <div class="brand">
-        <span class="dot"></span>
-        <div>
-          <div class="title">ACA-AOL</div>
-          <div class="subtitle">Journal Voucher (Excel → Accurate)</div>
-        </div>
-      </div>
-
-      <div class="topbar-actions">
-        <button id="themeToggle" class="btn ghost" type="button">Dark / Clear</button>
-      </div>
-    </header>
-
-    <main class="grid">
-
-      <!-- 1) LOGIN -->
-      <section id="loginView" class="card span2">
-        <div class="card-head">
-          <h2>Login</h2>
-          <span class="step-badge">Akses Aplikasi</span>
+    <!-- LOGIN SCREEN -->
+    <main id="loginView" class="login-screen">
+      <section class="login-card">
+        <div class="login-brand">
+          <span class="logo-mark"></span>
+          <div>
+            <div class="brand-title">ACA-AOL</div>
+            <div class="brand-subtitle">Journal Voucher Importer</div>
+          </div>
         </div>
 
-        <div class="row">
+        <div class="login-hero">
+          <h1>Masuk ke aplikasi</h1>
+          <p>Import Journal Voucher dari Excel ke Accurate Online dengan alur yang lebih cepat, rapi, dan aman.</p>
+        </div>
+
+        <div class="login-form">
           <div class="field">
             <label for="email">Email</label>
             <input id="email" type="email" placeholder="nama@email.com" autocomplete="username">
@@ -47,105 +39,220 @@
 
           <div class="field">
             <label for="password">Password</label>
-            <input id="password" type="password" placeholder="••••••••" autocomplete="current-password">
+            <input id="password" type="password" placeholder="Masukkan password" autocomplete="current-password">
+          </div>
+
+          <button id="btnLogin" class="btn btn-primary btn-full" type="button">Masuk</button>
+
+          <div id="loginStatus" class="status-text"></div>
+          <div id="customerInfo" class="status-text"></div>
+        </div>
+      </section>
+
+      <section class="login-side">
+        <div class="side-pill">ACA-AOL JV</div>
+        <h2>Import Journal Voucher tanpa melihat payload teknis.</h2>
+        <p>Aplikasi hanya menampilkan progres, jumlah sukses, jumlah gagal, dan catatan gagal yang mudah dipahami.</p>
+
+        <div class="feature-list">
+          <div class="feature-item">
+            <span>1</span>
+            <div>
+              <strong>Connect Accurate</strong>
+              <small>Login OAuth dan pilih database.</small>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span>2</span>
+            <div>
+              <strong>Upload Excel</strong>
+              <small>Gunakan template Journal Voucher.</small>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span>3</span>
+            <div>
+              <strong>Import</strong>
+              <small>Lihat hasil sukses/gagal dengan jelas.</small>
+            </div>
           </div>
         </div>
-
-        <div class="row" style="margin-top:10px">
-          <button id="btnLogin" class="btn" type="button">Masuk</button>
-          <div id="loginStatus" class="hint" style="margin-left:10px"></div>
-        </div>
-        <div id="customerInfo" class="hint"></div>
       </section>
-
-      <div id="appView" class="hidden" style="display: contents;">
-
-      <!-- 2) CONNECT + DB -->
-      <section class="card span2">
-        <div class="card-head">
-          <h2>2) Connect Accurate & Pilih Database</h2>
-          <span class="step-badge">OAuth & Database</span>
-        </div>
-
-        <div class="row row-gap">
-          <a id="btnConnectAO" href="/oauth/start" class="btn">Connect Accurate</a>
-          <button id="btnLoadDb" class="btn ghost" type="button" disabled>Load Database</button>
-          <button id="btnUseDb" class="btn ghost" type="button" disabled>Use Database</button>
-          <button id="btnLogoutAO" class="btn ghost" type="button">Logout Accurate</button>
-        </div>
-
-        <div class="field" style="margin-top:12px">
-          <label for="dbSelect">Pilih Database</label>
-          <select id="dbSelect">
-            <option value="">-- klik Load Database dulu --</option>
-          </select>
-        </div>
-
-        <div id="aoStatus" class="hint" style="margin-top:10px"></div>
-
-        <div class="hint" style="margin-top:8px">
-          Urutan: Connect Accurate → Load Database → pilih database → Use Database
-        </div>
-      </section>
-
-      <!-- 3) UPLOAD -->
-      <section class="card span2">
-        <div class="card-head">
-          <h2>3) Upload Excel</h2>
-          <span class="step-badge">Template & File</span>
-        </div>
-
-        <div class="row row-gap">
-          <input id="file" type="file" accept=".xlsx,.xls">
-          <a class="btn ghost" href="/api/template">Download Template</a>
-          <button id="btnResetFile" class="btn ghost" type="button">Reset File</button>
-        </div>
-
-        <div class="hint" style="margin-top:8px">
-          Header wajib: transDate, number, accountNo, amount, amountType
-        </div>
-      </section>
-
-      <!-- 4) BUILD & IMPORT -->
-      <section class="card span2">
-        <div class="card-head">
-          <h2>4) Build & Import</h2>
-          <span class="step-badge">Proses Import</span>
-        </div>
-
-        <div class="row row-gap">
-          <button id="btnBuild" class="btn ghost" type="button" disabled>Build Payload</button>
-          <button id="btnImport" class="btn" type="button" disabled>Import ke Accurate</button>
-        </div>
-
-        <div id="summary" class="hint" style="margin-top:10px"></div>
-
-        <!-- Notify box -->
-        <div id="notifyBox" class="notify hidden">
-          <div class="notify-head">
-            <div id="notifyTitle" class="notify-title"></div>
-            <button id="notifyClose" class="notify-close" type="button" aria-label="Tutup notifikasi">✕</button>
-          </div>
-          <div id="notifyBody" class="notify-body"></div>
-        </div>
-
-        <!-- Log -->
-        <pre id="log" class="log"></pre>
-      </section>
-
-      </div>
-
     </main>
 
-    <footer id="appFooter" class="footer hidden">
-      <span>Theme: Dark/Clear</span>
-      <span>·</span>
-      <span>Accent: Orange</span>
-      <span>·</span>
-      <span>Python Flask</span>
-      <span>·</span>
-      <span>Module: Journal Voucher</span>
-    </footer>
+    <!-- APP DASHBOARD -->
+    <div id="appView" class="hidden">
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo-mark"></span>
+          <div>
+            <div class="brand-title">ACA-AOL</div>
+            <div class="brand-subtitle">Journal Voucher (Excel → Accurate)</div>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <div id="userBadge" class="user-badge">Login aktif</div>
+          <button id="themeToggle" class="btn btn-ghost" type="button">Dark / Clear</button>
+          <button id="btnAppLogout" class="btn btn-ghost" type="button">Keluar</button>
+        </div>
+      </header>
+
+      <main class="dashboard">
+        <section class="hero-card">
+          <div>
+            <div class="eyebrow">Journal Voucher Importer</div>
+            <h1>Upload Excel, cek jumlah transaksi, lalu import ke Accurate.</h1>
+            <p>Ikuti 3 langkah utama di bawah. Sistem akan menyembunyikan detail teknis dan hanya menampilkan hasil akhir yang penting.</p>
+          </div>
+
+          <div class="status-stack">
+            <div class="status-chip" id="chipLogin">Login</div>
+            <div class="status-chip" id="chipOAuth">Accurate</div>
+            <div class="status-chip" id="chipDb">Database</div>
+            <div class="status-chip" id="chipFile">Excel</div>
+          </div>
+        </section>
+
+        <section class="panel-grid">
+          <!-- Step 1 -->
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <span class="step-no">01</span>
+                <h2>Connect Accurate</h2>
+              </div>
+              <span class="step-badge">OAuth & Database</span>
+            </div>
+
+            <p class="panel-note">Hubungkan akun Accurate, muat daftar database, lalu pilih database tujuan.</p>
+
+            <div class="action-row">
+              <a id="btnConnectAO" href="/oauth/start" class="btn btn-primary">Connect Accurate</a>
+              <button id="btnLoadDb" class="btn btn-secondary" type="button" disabled>Load Database</button>
+              <button id="btnUseDb" class="btn btn-secondary" type="button" disabled>Use Database</button>
+              <button id="btnLogoutAO" class="btn btn-ghost" type="button">Logout Accurate</button>
+            </div>
+
+            <div class="field field-spaced">
+              <label for="dbSelect">Database Accurate</label>
+              <select id="dbSelect">
+                <option value="">-- klik Load Database dulu --</option>
+              </select>
+            </div>
+
+            <div id="aoStatus" class="status-text"></div>
+          </section>
+
+          <!-- Step 2 -->
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <span class="step-no">02</span>
+                <h2>Upload Excel</h2>
+              </div>
+              <span class="step-badge">File & Template</span>
+            </div>
+
+            <p class="panel-note">Gunakan format template agar kolom sesuai dengan builder Journal Voucher.</p>
+
+            <div class="upload-box">
+              <input id="file" type="file" accept=".xlsx,.xls">
+              <div>
+                <strong id="fileName">Belum ada file dipilih</strong>
+                <small>Format: .xlsx atau .xls</small>
+              </div>
+            </div>
+
+            <div class="action-row">
+              <a class="btn btn-secondary" href="/api/template">Download Template</a>
+              <button id="btnResetFile" class="btn btn-ghost" type="button">Reset File</button>
+            </div>
+
+            <div class="mini-note">Header wajib: transDate, accountNo, amount, amountType. Kolom number bisa kosong untuk auto-number.</div>
+          </section>
+        </section>
+
+        <!-- Step 3 -->
+        <section class="panel import-panel">
+          <div class="panel-head">
+            <div>
+              <span class="step-no">03</span>
+              <h2>Build & Import</h2>
+            </div>
+            <span class="step-badge">Proses</span>
+          </div>
+
+          <div class="import-layout">
+            <div class="process-card">
+              <p class="panel-note">Build untuk mengecek file dan jumlah transaksi. Setelah siap, lanjutkan import ke Accurate.</p>
+
+              <div class="action-row">
+                <button id="btnBuild" class="btn btn-secondary" type="button" disabled>Cek File</button>
+                <button id="btnImport" class="btn btn-primary" type="button" disabled>Import ke Accurate</button>
+              </div>
+
+              <div id="processStatus" class="process-status idle">
+                <span class="status-dot"></span>
+                <div>
+                  <strong>Menunggu file Excel</strong>
+                  <small>Pilih file Excel terlebih dahulu.</small>
+                </div>
+              </div>
+
+              <div id="summary" class="summary-line"></div>
+            </div>
+
+            <div id="resultCards" class="result-cards">
+              <div class="metric-card">
+                <span>Total</span>
+                <strong id="metricTotal">0</strong>
+              </div>
+              <div class="metric-card success">
+                <span>Sukses</span>
+                <strong id="metricSuccess">0</strong>
+              </div>
+              <div class="metric-card danger">
+                <span>Gagal</span>
+                <strong id="metricFailed">0</strong>
+              </div>
+            </div>
+          </div>
+
+          <div id="notifyBox" class="notify hidden">
+            <div class="notify-head">
+              <div id="notifyTitle" class="notify-title"></div>
+              <button id="notifyClose" class="notify-close" type="button" aria-label="Tutup notifikasi">✕</button>
+            </div>
+            <div id="notifyBody" class="notify-body"></div>
+          </div>
+
+          <section id="failurePad" class="failure-pad hidden">
+            <div class="failure-pad-head">
+              <div>
+                <h3>Catatan gagal</h3>
+                <p>Daftar transaksi yang belum berhasil diimport.</p>
+              </div>
+              <button id="btnCopyFailures" class="btn btn-ghost" type="button">Copy Catatan</button>
+            </div>
+            <textarea id="failureNotes" readonly></textarea>
+          </section>
+
+          <details class="technical-detail">
+            <summary>Debug teknis</summary>
+            <pre id="log" class="log"></pre>
+          </details>
+        </section>
+      </main>
+
+      <footer id="appFooter" class="footer">
+        <span>ACA-AOL</span>
+        <span>·</span>
+        <span>Module: Journal Voucher</span>
+        <span>·</span>
+        <span>Python Flask</span>
+      </footer>
+    </div>
   </div>
 
   <script src="/static/app.js"></script>
