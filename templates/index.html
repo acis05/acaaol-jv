@@ -10,6 +10,54 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="/static/styles.css">
+
+  <style>
+    .license-panel {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 22px 24px;
+      border-radius: 22px;
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(255,255,255,0.04));
+      box-shadow: 0 16px 45px rgba(0,0,0,0.18);
+    }
+    .license-label {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent, #f59e0b);
+      margin-bottom: 6px;
+    }
+    .license-panel h2 {
+      margin: 0;
+      font-size: clamp(18px, 2vw, 28px);
+      line-height: 1.2;
+    }
+    .license-meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+      min-width: 260px;
+    }
+    .license-meta span {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    @media (max-width: 900px) {
+      .license-panel { flex-direction: column; align-items: flex-start; }
+      .license-meta { justify-content: flex-start; min-width: 0; }
+    }
+  </style>
 </head>
 <body>
   <div class="shell-bg"></div>
@@ -111,6 +159,18 @@
             <div class="status-chip" id="chipOAuth">Accurate</div>
             <div class="status-chip" id="chipDb">Database</div>
             <div class="status-chip" id="chipFile">Excel</div>
+          </div>
+        </section>
+
+        <section class="license-panel span2">
+          <div>
+            <div class="license-label">Lisensi Aktif</div>
+            <h2 id="licenseOwner">APLIKASI ACA-AOL INI TERDAFTAR ATAS NAMA -</h2>
+          </div>
+          <div class="license-meta">
+            <span id="licenseEmail">Email: -</span>
+            <span id="licenseExpiry">Masa berlaku: -</span>
+            <span id="licenseDbQuota">Kuota database: 0/5</span>
           </div>
         </section>
 

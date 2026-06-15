@@ -2,6 +2,7 @@ let token = sessionStorage.getItem("app_token") || null;
 let selectedFile = null;
 let builtPayload = null;
 let currentUser = sessionStorage.getItem("app_user") || "";
+let currentLicense = JSON.parse(sessionStorage.getItem("app_license") || "null");
 let lastFailureText = "";
 let ao = {
   has_token: false,
@@ -65,6 +66,39 @@ function setMetrics(total = 0, success = 0, failed = 0) {
   setText("metricTotal", total);
   setText("metricSuccess", success);
   setText("metricFailed", failed);
+}
+
+
+function formatLicenseDate(value) {
+  if (!value) return "-";
+  return String(value);
+}
+
+function saveLicenseInfo(info = {}) {
+  currentLicense = {
+    customer_name: info.customer_name || currentLicense?.customer_name || "-",
+    email: info.email || currentLicense?.email || "-",
+    expires: info.expires ?? currentLicense?.expires ?? null,
+    max_databases: info.max_databases ?? currentLicense?.max_databases ?? 5,
+    used_databases: info.used_databases ?? currentLicense?.used_databases ?? 0,
+    allowed_databases: info.allowed_databases || currentLicense?.allowed_databases || []
+  };
+  sessionStorage.setItem("app_license", JSON.stringify(currentLicense));
+  renderLicenseInfo();
+}
+
+function renderLicenseInfo() {
+  const info = currentLicense || {};
+  const customer = info.customer_name || "-";
+  const email = info.email || currentUser || "-";
+  const expires = formatLicenseDate(info.expires);
+  const maxDb = info.max_databases || 5;
+  const usedDb = info.used_databases ?? (Array.isArray(info.allowed_databases) ? info.allowed_databases.length : 0);
+
+  setText("licenseOwner", `APLIKASI ACA-AOL INI TERDAFTAR ATAS NAMA ${customer}`);
+  setText("licenseEmail", `Email: ${email}`);
+  setText("licenseExpiry", `Masa berlaku: ${expires}`);
+  setText("licenseDbQuota", `Kuota database: ${usedDb}/${maxDb}`);
 }
 
 function updateChips() {
@@ -260,6 +294,8 @@ function updateViewByLogin() {
   if ($("userBadge")) {
     $("userBadge").textContent = currentUser || "Login aktif";
   }
+
+  renderLicenseInfo();
 }
 
 function updateUI() {
@@ -311,8 +347,11 @@ function resetExcelState() {
 // ======================
 // HTTP helpers
 // ======================
-async function getJson(url) {
-  const r = await fetch(url);
+async function getJson(url, auth = false) {
+  const headers = {};
+  if (auth && token) headers["Authorization"] = `Bearer ${token}`;
+
+  const r = await fetch(url, { headers });
   const t = await r.text();
   let j;
   try { j = JSON.parse(t); } catch { j = { raw: t }; }
@@ -374,13 +413,14 @@ async function postForm(url, formData) {
 
 async function fetchAoStatus() {
   try {
-    const st = await getJson("/api/ao-status");
+    const st = await getJson("/api/ao-status", true);
     ao = {
       has_token: !!st.has_token,
       has_session: !!st.has_session,
       db_id: st.db_id || null,
       db_alias: st.db_alias || null
     };
+    if (st.license) saveLicenseInfo(st.license);
   } catch {
     ao = {
       has_token: false,
@@ -420,9 +460,10 @@ if ($("btnLogin")) {
       currentUser = res.email || email || res.customer_name || "Login aktif";
       sessionStorage.setItem("app_token", token);
       sessionStorage.setItem("app_user", currentUser);
+      saveLicenseInfo(res);
 
       if ($("customerInfo")) {
-        $("customerInfo").textContent = "Login berhasil. Membuka dashboard...";
+        $("customerInfo").textContent = `APLIKASI ACA-AOL INI TERDAFTAR ATAS NAMA ${res.customer_name || "-"}`;
       }
 
       setText("loginStatus", "");
@@ -435,6 +476,8 @@ if ($("btnLogin")) {
       currentUser = "";
       sessionStorage.removeItem("app_token");
       sessionStorage.removeItem("app_user");
+      sessionStorage.removeItem("app_license");
+      currentLicense = null;
       setText("loginStatus", "Login gagal: " + e.message);
 
       if ($("customerInfo")) {
@@ -579,10 +622,11 @@ if ($("btnUseDb")) {
 
       if (!id) throw new Error("Pilih database dulu");
 
-      const res = await postJson("/api/open-db", { id, alias }, false);
+      const res = await postJson("/api/open-db", { id, alias }, true);
+      if (res.license) saveLicenseInfo(res.license);
       await fetchAoStatus();
 
-      showNotify("success", "Database aktif", renderSimpleMessage([alias || id]));
+      showNotify("success", "Database aktif", renderSimpleMessage([res.message || `Database siap digunakan: ${alias || id}`]));
       setProcessStatus("idle", "Database sudah aktif", "Lanjut upload file Excel.");
       log(JSON.stringify(res, null, 2));
     } catch (e) {
@@ -740,6 +784,8 @@ if ($("btnImport")) {
 window.addEventListener("load", async () => {
   token = sessionStorage.getItem("app_token") || null;
   currentUser = sessionStorage.getItem("app_user") || "";
+  currentLicense = JSON.parse(sessionStorage.getItem("app_license") || "null");
+  renderLicenseInfo();
   updateUI();
 
   if (token) {

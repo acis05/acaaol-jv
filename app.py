@@ -85,10 +85,35 @@ def load_licenses():
                 "active": True,
                 "expires": None,
                 "customer_name": "Demo User",
+                "max_databases": 5,
+                "allowed_databases": [],
             }
         ]
     with open(LICENSE_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def save_licenses(data):
+    with open(LICENSE_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def normalize_license_record(lic: dict) -> dict:
+    if lic is None:
+        return {}
+
+    if "max_databases" not in lic or lic.get("max_databases") in (None, ""):
+        lic["max_databases"] = 5
+
+    try:
+        lic["max_databases"] = int(lic.get("max_databases") or 5)
+    except Exception:
+        lic["max_databases"] = 5
+
+    if not isinstance(lic.get("allowed_databases"), list):
+        lic["allowed_databases"] = []
+
+    return lic
 
 
 def license_valid(email: str, password: str):
@@ -118,6 +143,7 @@ def license_valid(email: str, password: str):
     if sha256(password) != lic.get("password_sha256"):
         return False, "Password salah", None
 
+    lic = normalize_license_record(lic)
     return True, "OK", lic
 
 
@@ -144,6 +170,46 @@ def require_auth(fn):
         return fn(*args, **kwargs)
 
     return wrapper
+
+
+
+def get_current_email_from_auth():
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return None
+
+    token = auth[7:]
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        email = (payload.get("email") or "").strip().lower()
+        return email or None
+    except Exception:
+        return None
+
+
+def get_license_by_email(email: str):
+    email = (email or "").strip().lower()
+    if not email:
+        return None
+
+    licenses = load_licenses()
+    for lic in licenses:
+        if str(lic.get("email", "")).strip().lower() == email:
+            return normalize_license_record(lic)
+    return None
+
+
+def license_public_info(lic: dict) -> dict:
+    lic = normalize_license_record(lic or {})
+    allowed = lic.get("allowed_databases", []) or []
+    return {
+        "customer_name": lic.get("customer_name") or "-",
+        "email": lic.get("email") or "-",
+        "expires": lic.get("expires"),
+        "max_databases": lic.get("max_databases", 5),
+        "used_databases": len(allowed),
+        "allowed_databases": allowed,
+    }
 
 
 # =========================
@@ -238,7 +304,59 @@ def parse_date_ddmmyyyy(val):
         return None
 
 
+def normalize_jv_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Support header Excel lama dan baru.
+    Contoh: BRANCHID / BranchId / branchId akan dibaca sebagai branchId.
+    """
+    rename_map = {
+        "TRANSDATE": "transDate",
+        "NUMBER": "number",
+        "DESCRIPTION": "description",
+        "BRANCHID": "branchId",
+        "BRANCHNAME": "branchName",
+        "ID": "id",
+        "TYPEAUTONUMBER": "typeAutoNumber",
+
+        "ACCOUNTNO": "accountNo",
+        "AMOUNT": "amount",
+        "AMOUNTTYPE": "amountType",
+        "MEMO": "memo",
+        "SUBSIDIARYTYPE": "subsidiaryType",
+        "CUSTOMERNO": "customerNo",
+        "VENDORNO": "vendorNo",
+        "EMPLOYEENO": "employeeNo",
+        "PROJECTNO": "projectNo",
+        "DEPARTMENTNAME": "departmentName",
+        "RATE": "rate",
+        "PRIMEAMOUNT": "primeAmount",
+        "DETAILID": "id",
+        "DETAILSTATUS": "_status",
+        "_STATUS": "_status",
+
+        "DATACLASSIFICATION1NAME": "dataClassification1Name",
+        "DATACLASSIFICATION2NAME": "dataClassification2Name",
+        "DATACLASSIFICATION3NAME": "dataClassification3Name",
+        "DATACLASSIFICATION4NAME": "dataClassification4Name",
+        "DATACLASSIFICATION5NAME": "dataClassification5Name",
+        "DATACLASSIFICATION6NAME": "dataClassification6Name",
+        "DATACLASSIFICATION7NAME": "dataClassification7Name",
+        "DATACLASSIFICATION8NAME": "dataClassification8Name",
+        "DATACLASSIFICATION9NAME": "dataClassification9Name",
+        "DATACLASSIFICATION10NAME": "dataClassification10Name",
+    }
+
+    df = df.copy()
+    df.rename(
+        columns=lambda x: rename_map.get(str(x).strip().replace(" ", "").upper(), str(x).strip()),
+        inplace=True,
+    )
+    return df
+
+
 def build_payload_from_df(df: pd.DataFrame):
+    df = normalize_jv_columns(df)
+
     required = ["transDate", "accountNo", "amount", "amountType"]
     for col in required:
         if col not in df.columns:
@@ -425,11 +543,17 @@ def api_login():
 
     token = make_token(email)
 
+    info = license_public_info(lic)
+
     return jsonify({
         "ok": True,
         "token": token,
-        "customer_name": lic.get("customer_name"),
-        "email": email
+        "customer_name": info.get("customer_name"),
+        "email": email,
+        "expires": info.get("expires"),
+        "max_databases": info.get("max_databases"),
+        "used_databases": info.get("used_databases"),
+        "allowed_databases": info.get("allowed_databases"),
     })
 
 # =========================
@@ -438,6 +562,11 @@ def api_login():
 @app.get("/api/ao-status")
 def api_ao_status():
     tokens = load_tokens()
+
+    email = get_current_email_from_auth()
+    lic = get_license_by_email(email) if email else None
+    license_info = license_public_info(lic) if lic else None
+
     return jsonify(
         {
             "ok": True,
@@ -445,6 +574,7 @@ def api_ao_status():
             "has_session": bool((tokens.get("host") or "").strip()) and bool((tokens.get("x_session_id") or "").strip()),
             "db_id": tokens.get("db_id"),
             "db_alias": tokens.get("db_alias"),
+            "license": license_info,
         }
     )
 
@@ -750,12 +880,44 @@ def api_open_db():
     db_id = str(body.get("id") or "").strip()
     db_alias = str(body.get("alias") or "").strip()
 
+    email = get_current_email_from_auth()
+    if not email:
+        return jsonify({"ok": False, "message": "Unauthorized"}), 401
+
+    licenses = load_licenses()
+    user_license = None
+    for lic in licenses:
+        if str(lic.get("email", "")).strip().lower() == email:
+            user_license = normalize_license_record(lic)
+            break
+
+    if not user_license:
+        return jsonify({"ok": False, "message": "User tidak ditemukan"}), 401
+
     tokens = refresh_access_token_if_needed()
     access_token = (tokens.get("access_token") or "").strip()
     if not access_token:
         return jsonify({"ok": False, "message": "Belum connect OAuth."}), 401
     if not db_id:
         return jsonify({"ok": False, "message": "db id kosong."}), 400
+
+    allowed = user_license.setdefault("allowed_databases", [])
+    max_db = int(user_license.get("max_databases") or 5)
+    already_registered = any(str(x.get("id")) == db_id for x in allowed)
+
+    if not already_registered and len(allowed) >= max_db:
+        listed = [f"- {x.get('alias') or 'Database'} (ID: {x.get('id')})" for x in allowed]
+        detail = "\n".join(listed) if listed else "- belum ada database terdaftar"
+        return jsonify({
+            "ok": False,
+            "message": (
+                f"Kuota database penuh. Lisensi {user_license.get('customer_name') or email} "
+                f"maksimal {max_db} database.\n\n"
+                f"Database yang sudah terdaftar:\n{detail}\n\n"
+                "Hubungi ACIS untuk upgrade atau reset database."
+            ),
+            "license": license_public_info(user_license),
+        }), 403
 
     headers = {"Authorization": f"Bearer {access_token}"}
     r = requests.get(ACCOUNT_OPEN_DB_URL, headers=headers, params={"id": db_id}, timeout=60)
@@ -780,7 +942,27 @@ def api_open_db():
     )
     save_tokens(tokens)
 
-    return jsonify({"ok": True, "response": j})
+    registered_now = False
+    if not already_registered:
+        allowed.append({
+            "id": db_id,
+            "alias": db_alias or j.get("alias") or f"Database {db_id}",
+            "registered_at": dt.datetime.now().isoformat(),
+        })
+        save_licenses(licenses)
+        registered_now = True
+
+    return jsonify({
+        "ok": True,
+        "response": j,
+        "registered_now": registered_now,
+        "message": (
+            f"Database berhasil didaftarkan ({len(allowed)}/{max_db})."
+            if registered_now else
+            f"Database aktif. Kuota database {len(allowed)}/{max_db}."
+        ),
+        "license": license_public_info(user_license),
+    })
 
 
 # =========================
@@ -788,13 +970,97 @@ def api_open_db():
 # =========================
 @app.get("/api/template")
 def api_template():
-    csv = "\n".join(
-        [
-            "transDate,number,description,accountNo,amount,amountType,memo,subsidiaryType,customerNo,vendorNo,employeeNo,projectNo,departmentName",
-            "31/03/2016,JV-001,Test JV,1100,100000,DEBIT,Catatan,,,,,PRJ-01,FIN",
-            "31/03/2016,JV-001,Test JV,2100,100000,CREDIT,Catatan,,,,,PRJ-01,FIN",
-        ]
-    )
+    # Template default Journal Voucher lengkap sesuai parameter API Accurate.
+    # Header dibuat camelCase agar langsung cocok dengan app.py, namun app.py juga menerima versi UPPERCASE.
+    columns = [
+        "transDate",
+        "number",
+        "description",
+        "branchId",
+        "branchName",
+        "typeAutoNumber",
+
+        "accountNo",
+        "amount",
+        "amountType",
+        "memo",
+        "subsidiaryType",
+        "customerNo",
+        "vendorNo",
+        "employeeNo",
+        "projectNo",
+        "departmentName",
+        "rate",
+        "primeAmount",
+        "detailId",
+        "_status",
+        "dataClassification1Name",
+        "dataClassification2Name",
+        "dataClassification3Name",
+        "dataClassification4Name",
+        "dataClassification5Name",
+        "dataClassification6Name",
+        "dataClassification7Name",
+        "dataClassification8Name",
+        "dataClassification9Name",
+        "dataClassification10Name",
+    ]
+
+    rows = [
+        {
+            "transDate": "31/03/2026",
+            "number": "JV-001",
+            "description": "Jurnal Umum Cabang",
+            "branchId": "1",
+            "branchName": "Cabang Jakarta",
+            "typeAutoNumber": "",
+            "accountNo": "1100",
+            "amount": "100000",
+            "amountType": "DEBIT",
+            "memo": "Kas masuk",
+            "subsidiaryType": "",
+            "customerNo": "",
+            "vendorNo": "",
+            "employeeNo": "",
+            "projectNo": "PRJ-01",
+            "departmentName": "FIN",
+            "rate": "",
+            "primeAmount": "",
+        },
+        {
+            "transDate": "31/03/2026",
+            "number": "JV-001",
+            "description": "Jurnal Umum Cabang",
+            "branchId": "1",
+            "branchName": "Cabang Jakarta",
+            "typeAutoNumber": "",
+            "accountNo": "2100",
+            "amount": "100000",
+            "amountType": "CREDIT",
+            "memo": "Kas masuk",
+            "subsidiaryType": "",
+            "customerNo": "",
+            "vendorNo": "",
+            "employeeNo": "",
+            "projectNo": "PRJ-01",
+            "departmentName": "FIN",
+            "rate": "",
+            "primeAmount": "",
+        },
+    ]
+
+    def csv_escape(value):
+        s = str(value if value is not None else "")
+        if any(ch in s for ch in [",", '"', "\n"]):
+            return '"' + s.replace('"', '""') + '"'
+        return s
+
+    csv_lines = [",".join(columns)]
+    for row in rows:
+        csv_lines.append(",".join(csv_escape(row.get(col, "")) for col in columns))
+
+    csv = "\n".join(csv_lines)
+
     return app.response_class(
         csv,
         mimetype="text/csv",
