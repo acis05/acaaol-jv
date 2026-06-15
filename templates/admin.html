@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ACA-AOL · Admin License JV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+  <style>
+    .admin-wrap{width:min(1280px,calc(100% - 28px));margin:22px auto 40px}.admin-hero,.admin-card,.admin-login-card{background:var(--surface,var(--card,#0f172a));border:1px solid var(--border,var(--card-border,rgba(255,255,255,.1)));border-radius:24px;box-shadow:var(--shadow);padding:24px}.admin-hero{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:18px}.admin-hero h1{margin:0;font-size:34px;letter-spacing:-.045em}.admin-hero p,.admin-muted{margin:8px 0 0;color:var(--muted,#94a3b8);line-height:1.55}.admin-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:18px}.admin-card h2{margin:0 0 14px;font-size:20px}.admin-table-wrap{overflow:auto}.admin-table{width:100%;border-collapse:separate;border-spacing:0 10px;min-width:960px}.admin-table th{text-align:left;color:var(--muted,#94a3b8);font-size:12px;padding:0 10px}.admin-table td{background:var(--surface-3,rgba(255,255,255,.04));border-top:1px solid var(--border,var(--card-border,rgba(255,255,255,.1)));border-bottom:1px solid var(--border,var(--card-border,rgba(255,255,255,.1)));padding:12px 10px;font-size:13px;vertical-align:top}.admin-table td:first-child{border-left:1px solid var(--border,var(--card-border,rgba(255,255,255,.1)));border-radius:14px 0 0 14px}.admin-table td:last-child{border-right:1px solid var(--border,var(--card-border,rgba(255,255,255,.1)));border-radius:0 14px 14px 0}.admin-login{min-height:100vh;display:grid;place-items:center;width:min(520px,calc(100% - 32px));margin:0 auto}.admin-actions{display:flex;gap:8px;flex-wrap:wrap}.admin-actions .btn,.admin-small-btn{min-height:34px;padding:7px 10px;border-radius:12px;font-size:12px}.admin-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.admin-msg{margin-top:12px;color:var(--muted,#94a3b8);font-weight:700}.admin-msg.error{color:var(--danger,#ef4444)}.admin-msg.success{color:var(--success,#22c55e)}.status-ok{color:var(--success,#22c55e);font-weight:900}.status-off{color:var(--danger,#ef4444);font-weight:900}.db-list{color:var(--muted,#94a3b8);font-size:12px;white-space:pre-line}.field{margin-bottom:14px}.admin-btn{border:1px solid transparent;appearance:none;cursor:pointer;min-height:44px;padding:10px 16px;border-radius:14px;font-weight:850;font-size:14px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}.admin-btn.primary{color:#111827;background:linear-gradient(180deg,var(--accent,#f59e0b),var(--accent-2,#f97316))}.admin-btn.ghost{color:var(--text,#fff);background:transparent;border-color:var(--border,var(--card-border,rgba(255,255,255,.1)))}.admin-btn.full{width:100%}@media(max-width:900px){.admin-grid{grid-template-columns:1fr}.admin-hero{flex-direction:column;align-items:flex-start}.admin-form-row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <section id="adminLogin" class="admin-login">
+    <div class="admin-login-card" style="width:100%">
+      <div class="eyebrow">ACA-AOL Admin</div>
+      <h1 style="margin:12px 0 8px">Login Admin Lisensi</h1>
+      <p class="admin-muted">Kelola customer, masa aktif, kuota database, dan reset database terdaftar.</p>
+      <div class="field"><label>Email Admin</label><input id="adminEmail" type="email" placeholder="admin@aca-aol.id"></div>
+      <div class="field"><label>Password Admin</label><input id="adminPassword" type="password" placeholder="••••••••"></div>
+      <button id="btnAdminLogin" class="admin-btn primary full" type="button">Masuk Admin</button>
+      <div id="adminLoginMsg" class="admin-msg"></div>
+      <p class="admin-muted" style="font-size:12px">Default lokal: admin@aca-aol.id / admin123. Ubah di Railway Variables: ADMIN_EMAIL dan ADMIN_PASSWORD.</p>
+    </div>
+  </section>
+
+  <section id="adminApp" class="admin-wrap hidden">
+    <header class="admin-hero">
+      <div>
+        <div class="eyebrow">Admin Panel JV</div>
+        <h1>ACA-AOL License Manager</h1>
+        <p>Tambah customer baru, reset database, ubah masa berlaku, dan suspend akun Journal Voucher.</p>
+      </div>
+      <div class="admin-actions">
+        <a class="admin-btn ghost" href="/">Buka Aplikasi</a>
+        <button id="btnRefresh" class="admin-btn ghost" type="button">Refresh</button>
+        <button id="btnAdminLogout" class="admin-btn ghost" type="button">Keluar Admin</button>
+      </div>
+    </header>
+
+    <main class="admin-grid">
+      <section class="admin-card">
+        <h2>Tambah Customer</h2>
+        <div class="field"><label>Nama PT / Customer</label><input id="newCustomerName" type="text" placeholder="PT Contoh Makmur"></div>
+        <div class="field"><label>Email Login</label><input id="newEmail" type="email" placeholder="finance@customer.co.id"></div>
+        <div class="field"><label>Password Login</label><input id="newPassword" type="text" placeholder="mis. Acis2026!"></div>
+        <div class="admin-form-row">
+          <div class="field"><label>Masa Berlaku</label><input id="newExpires" type="text" placeholder="2026-12-31"></div>
+          <div class="field"><label>Max Database</label><input id="newMaxDb" type="text" value="5"></div>
+        </div>
+        <div class="field"><label>Catatan</label><input id="newNotes" type="text" placeholder="Akses modul JV"></div>
+        <button id="btnCreate" class="admin-btn primary full" type="button">Buat Customer</button>
+        <div id="formMsg" class="admin-msg"></div>
+      </section>
+
+      <section class="admin-card">
+        <h2>Customer Terdaftar</h2>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>Customer</th><th>Email</th><th>Expired</th><th>DB</th><th>Status</th><th>Database Terdaftar</th><th>Aksi</th></tr></thead>
+            <tbody id="licenseRows"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </section>
+
+<script>
+let adminToken = sessionStorage.getItem('admin_token_jv') || null;
+const $ = (id) => document.getElementById(id);
+function esc(x){return String(x ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
+function setMsg(id, text, type=''){const el=$(id); if(!el)return; el.textContent=text||''; el.className='admin-msg '+type}
+function updateView(){ $('adminLogin').classList.toggle('hidden', !!adminToken); $('adminApp').classList.toggle('hidden', !adminToken); if(adminToken) loadLicenses(); }
+async function api(url, opts={}){const headers=opts.headers||{}; if(adminToken) headers.Authorization='Bearer '+adminToken; if(opts.body && !headers['Content-Type']) headers['Content-Type']='application/json'; const r=await fetch(url,{...opts,headers}); const t=await r.text(); let j; try{j=JSON.parse(t)}catch{j={raw:t}} if(!r.ok){throw new Error(j.message||('HTTP '+r.status))} return j;}
+function dbText(list){if(!Array.isArray(list)||!list.length)return '-'; return list.map(x=>`- ${x.alias || 'Database'} (ID: ${x.id})`).join('\n')}
+function renderRows(data){const rows=$('licenseRows'); rows.innerHTML=(data||[]).map(x=>`
+<tr>
+<td><strong>${esc(x.customer_name)}</strong><br><small class="admin-muted">${esc(x.notes||'')}</small></td>
+<td>${esc(x.email)}</td>
+<td>${esc(x.expires||'-')}</td>
+<td><strong>${esc(x.used_databases)}/${esc(x.max_databases)}</strong></td>
+<td>${x.active?'<span class="status-ok">Aktif</span>':'<span class="status-off">Nonaktif</span>'}</td>
+<td><div class="db-list">${esc(dbText(x.allowed_databases))}</div></td>
+<td><div class="admin-actions">
+<button class="admin-btn ghost admin-small-btn" onclick="editCustomer('${encodeURIComponent(x.email)}')">Edit</button>
+<button class="admin-btn ghost admin-small-btn" onclick="resetDb('${encodeURIComponent(x.email)}')">Reset DB</button>
+<button class="admin-btn ghost admin-small-btn" onclick="toggleActive('${encodeURIComponent(x.email)}')">${x.active?'Suspend':'Aktifkan'}</button>
+</div></td>
+</tr>`).join('');}
+async function loadLicenses(){try{const res=await api('/api/admin/licenses'); renderRows(res.data||[])}catch(e){setMsg('formMsg',e.message,'error')}}
+$('btnAdminLogin').onclick=async()=>{try{setMsg('adminLoginMsg',''); const email=$('adminEmail').value.trim(); const password=$('adminPassword').value.trim(); const res=await api('/api/admin/login',{method:'POST',body:JSON.stringify({email,password})}); adminToken=res.token; sessionStorage.setItem('admin_token_jv',adminToken); updateView();}catch(e){setMsg('adminLoginMsg',e.message,'error')}};
+$('btnAdminLogout').onclick=()=>{adminToken=null; sessionStorage.removeItem('admin_token_jv'); updateView()};
+$('btnRefresh').onclick=loadLicenses;
+$('btnCreate').onclick=async()=>{try{setMsg('formMsg',''); const body={customer_name:$('newCustomerName').value.trim(),email:$('newEmail').value.trim(),password:$('newPassword').value.trim(),expires:$('newExpires').value.trim(),max_databases:$('newMaxDb').value.trim(),notes:$('newNotes').value.trim(),active:true}; const res=await api('/api/admin/licenses',{method:'POST',body:JSON.stringify(body)}); setMsg('formMsg',res.message,'success'); ['newCustomerName','newEmail','newPassword','newExpires','newNotes'].forEach(id=>$(id).value=''); $('newMaxDb').value='5'; loadLicenses();}catch(e){setMsg('formMsg',e.message,'error')}};
+async function resetDb(email){if(!confirm('Reset database terdaftar customer ini?'))return; try{await api('/api/admin/licenses/'+email+'/reset-databases',{method:'POST'}); loadLicenses();}catch(e){alert(e.message)}}
+async function toggleActive(email){try{await api('/api/admin/licenses/'+email+'/toggle-active',{method:'POST'}); loadLicenses();}catch(e){alert(e.message)}}
+async function editCustomer(email){const decoded=decodeURIComponent(email); const customer_name=prompt('Nama PT / Customer baru (kosongkan untuk batal)'); if(customer_name===null)return; const expires=prompt('Masa berlaku YYYY-MM-DD (kosongkan untuk tanpa expired)', ''); if(expires===null)return; const max_databases=prompt('Max database', '5'); if(max_databases===null)return; const password=prompt('Password baru (kosongkan jika tidak diganti)', ''); if(password===null)return; const notes=prompt('Catatan', 'Akses modul JV'); if(notes===null)return; try{await api('/api/admin/licenses/'+encodeURIComponent(decoded),{method:'PUT',body:JSON.stringify({customer_name,expires,max_databases,password,notes})}); loadLicenses();}catch(e){alert(e.message)}}
+['adminEmail','adminPassword'].forEach(id=>{const el=$(id); if(el) el.addEventListener('keydown',e=>{if(e.key==='Enter')$('btnAdminLogin').click()})});
+updateView();
+</script>
+</body>
+</html>
