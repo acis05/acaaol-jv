@@ -4,6 +4,7 @@ let builtPayload = null;
 let currentUser = sessionStorage.getItem("app_user") || "";
 let currentLicense = JSON.parse(sessionStorage.getItem("app_license") || "null");
 let lastFailureText = "";
+let lastImportCompleted = false;
 let ao = {
   has_token: false,
   has_session: false,
@@ -325,14 +326,17 @@ function updateUI() {
 
   updateChips();
 
-  if (!fileReady && !payloadReady) {
-    setProcessStatus("idle", "Menunggu file Excel", "Pilih file Excel terlebih dahulu.");
-  } else if (fileReady && !payloadReady) {
-    setProcessStatus("idle", "File sudah dipilih", "Klik Cek File untuk membaca transaksi.");
+  if (!lastImportCompleted) {
+    if (!fileReady && !payloadReady) {
+      setProcessStatus("idle", "Menunggu file Excel", "Pilih file Excel terlebih dahulu.");
+    } else if (fileReady && !payloadReady) {
+      setProcessStatus("idle", "File sudah dipilih", "Klik Cek File untuk membaca transaksi.");
+    }
   }
 }
 
 function resetExcelState() {
+  lastImportCompleted = false;
   selectedFile = null;
   builtPayload = null;
   if ($("file")) $("file").value = "";
@@ -498,6 +502,8 @@ if ($("btnAppLogout")) {
     builtPayload = null;
     sessionStorage.removeItem("app_token");
     sessionStorage.removeItem("app_user");
+    sessionStorage.removeItem("app_license");
+    currentLicense = null;
     setMetrics(0, 0, 0);
     hideFailurePad();
     clearNotify();
@@ -526,6 +532,7 @@ if ($("btnAppLogout")) {
 // ======================
 if ($("file")) {
   $("file").addEventListener("change", (e) => {
+    lastImportCompleted = false;
     clearNotify();
     hideFailurePad();
 
@@ -671,6 +678,7 @@ if ($("btnLogoutAO")) {
 if ($("btnBuild")) {
   $("btnBuild").onclick = async () => {
     try {
+      lastImportCompleted = false;
       clearNotify();
       hideFailurePad();
 
@@ -748,7 +756,15 @@ if ($("btnImport")) {
       if (failureText) showFailurePad(failureText);
 
       if (failed === 0) {
-        resetExcelState();
+        // Jangan panggil resetExcelState() di sini, karena reset akan menghapus
+        // angka sukses/gagal dan mengembalikan status menjadi "Menunggu file Excel".
+        // Kita hanya kosongkan payload supaya user tidak sengaja import ulang file yang sama,
+        // tetapi hasil import sukses tetap ditampilkan di layar.
+        lastImportCompleted = true;
+        selectedFile = null;
+        builtPayload = null;
+        if ($("file")) $("file").value = "";
+        setText("fileName", "Belum ada file dipilih");
         setProcessStatus("success", "Import berhasil", "Semua transaksi berhasil masuk ke Accurate.");
       }
     } catch (e) {
