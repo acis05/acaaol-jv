@@ -570,7 +570,7 @@ if ($("btnLoadDb")) {
       clearNotify();
       setProcessStatus("working", "Memuat database", "Mengambil daftar database dari Accurate...");
 
-      const res = await getJson("/api/db-list");
+      const res = await getJson("/api/db-list", true);
       const arr = res?.response?.d || [];
 
       const sel = $("dbSelect");
@@ -651,7 +651,10 @@ if ($("btnLogoutAO")) {
   $("btnLogoutAO").onclick = async () => {
     try {
       clearNotify();
-      await fetch("/api/ao-logout", { method: "POST" });
+      await fetch("/api/ao-logout", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
 
       ao = {
         has_token: false,

@@ -649,6 +649,7 @@ def api_login():
 # Routes: status
 # =========================
 @app.get("/api/ao-status")
+@require_auth
 def api_ao_status():
     tokens = load_tokens()
 
@@ -726,6 +727,7 @@ def tx_to_form_params(tx: dict) -> dict:
     return {k: str(v) for k, v in out.items()}
 
 @app.post("/api/ao-logout")
+@require_auth
 def api_ao_logout():
     if os.path.exists(TOKENS_FILE):
         os.remove(TOKENS_FILE)
@@ -943,6 +945,7 @@ def oauth_callback():
 # Routes: db list & open db
 # =========================
 @app.get("/api/db-list")
+@require_auth
 def api_db_list():
     tokens = refresh_access_token_if_needed()
     access_token = (tokens.get("access_token") or "").strip()
